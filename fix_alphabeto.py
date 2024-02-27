@@ -1,6 +1,9 @@
 import csv
 import sys
 import os
+import tkinter as tk
+from tkinter import ttk
+import pyperclip
 
 # Inizializza un array vuoto per salvare i caratteri
 caratteri_da_mappare = []
@@ -67,7 +70,59 @@ print("\n\r\n\r")
 simboli_da_mappare = sorted(caratteri_non_presenti, key=len, reverse=True)
 #print(simboli_da_mappare)
 #print("\n\r\n\r")
-for symbol in simboli_da_mappare:
-    print('\'' + symbol + '\' => \'\',')
+
 
 print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
+
+def salva():
+    # Funzione chiamata quando si preme il pulsante "Salva"
+    valori_selezionati = [dropdown.get() for dropdown in dropdowns]
+
+    for i, symbol in enumerate(simboli_da_mappare):
+        print(symbol + '=>>' + valori_selezionati[i] + '\n\r')
+        
+    finestra.destroy()
+
+# Funzione chiamata quando si clicca su un'etichetta
+def copia_testo(event):
+    etichetta_cliccata = event.widget
+    testo_da_copiare = etichetta_cliccata.cget("text")
+    pyperclip.copy(testo_da_copiare)
+
+# Crea la finestra principale
+finestra = tk.Tk()
+finestra.title("MAP all Symbols to alphabet")
+
+# Crea una lista di variabili StringVar per tenere traccia delle selezioni nelle dropdown
+caratteri_da_mappare.insert(0, '<VUOTO>')
+caratteri_da_mappare.insert(0, '<ELIMINA RIGA>')
+
+# Crea il pulsante Salva
+pulsante_salva = tk.Button(finestra, text="Salva", command=salva)
+pulsante_salva.grid(row=100, column=1, columnspan=2, sticky="se", padx=10, pady=10)
+
+num_colonne = 2  # Numero di colonne
+elementi_per_colonna = 20  # Numero di elementi per colonna
+
+dropdowns = [] # array delle dropdowns disposte
+
+# Crea etichette e dropdown nella finestra
+for indice, stringa in enumerate(simboli_da_mappare):
+    # Calcola la riga e la colonna per l'elemento
+    riga = indice % elementi_per_colonna
+    colonna = indice // elementi_per_colonna
+
+    etichetta = tk.Label(finestra, text=stringa,cursor="hand2")
+    etichetta.grid(row=riga, column=colonna * 2, padx=5, pady=5, sticky="w")
+
+    # Aggiungi la funzione di copia_testo alla lista degli eventi del clic
+    etichetta.bind("<Button-1>", copia_testo)
+    
+    valore_selezionato = tk.StringVar()
+    dropdown = ttk.Combobox(finestra, values=caratteri_da_mappare, textvariable=valore_selezionato)
+    dropdown.grid(row=riga, column=colonna * 2 + 1, padx=5, pady=5, sticky="w")
+
+    # Aggiungi la dropdown alla lista
+    dropdowns.append(dropdown)
+# Avvia il loop principale della finestra
+finestra.mainloop()

@@ -1,0 +1,24 @@
+# Ignore local python virtual environment
+venv/
+
+# Ignore csv data
+*.csv
+
+# Ignore accounts created by api's
+accounts.txt
+
+.idea/
+
+.vscode/
+
+**/__pycache__/
+
+__pycache__/
+
+*.log
+
+cookie.json
+
+*.pyc
+
+dist/
