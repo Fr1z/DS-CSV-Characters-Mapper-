@@ -3,6 +3,7 @@ import sys
 import os
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 import pyperclip
 
 # Inizializza un array vuoto per salvare i caratteri
@@ -74,12 +75,68 @@ simboli_da_mappare = sorted(caratteri_non_presenti, key=len, reverse=True)
 
 print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
 
-def salva():
-    # Funzione chiamata quando si preme il pulsante "Salva"
+def sostituisci_simboli(file_path, mappa_caratteri):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            testo = file.read()
+
+        for symbol, valore in mappa_caratteri.items():
+            if valore == '<VUOTO>':
+                testo = testo.replace(symbol, '')
+            elif valore == '<ELIMINA RIGA>':
+                # Divide il testo in righe
+                righe = testo.splitlines()
+                # Filtra le righe che contengono il carattere 'z'
+                righe_filtrate = [riga for riga in righe if valore not in riga]
+                # Unisce le righe di nuovo in una stringa
+                testo = '\n'.join(righe_filtrate)
+            else:
+                testo = testo.replace(symbol, valore)
+
+        return testo
+    except Exception as e:
+        print(f"Errore durante la lettura e sostituzione del file: {e}")
+        return None
+    
+def salva_file(testo_sostituito):
+    try:
+        file_destinazione = filedialog.asksaveasfilename(defaultextension=".csv",
+                                                           filetypes=[("File CSV", "*.csv"),
+                                                                      ("Tutti i file", "*.*")],
+                                                           title="Scegli la destinazione")
+        if file_destinazione:
+            with open(file_destinazione, 'w', encoding='utf-8') as file:
+                file.write(testo_sostituito)
+            print(f"File salvato con successo in: {file_destinazione}")
+    except Exception as e:
+        print(f"Errore durante il salvataggio del file: {e}")
+
+##PARTE GUI
+
+def genera():
+    # Funzione chiamata quando si preme il pulsante "Genera"
     valori_selezionati = [dropdown.get() for dropdown in dropdowns]
 
-    for i, symbol in enumerate(simboli_da_mappare):
-        print(symbol + '=>>' + valori_selezionati[i] + '\n\r')
+    # Creazione di un dizionario utilizzando zip
+    mappa_caratteri = dict(zip(simboli_da_mappare, valori_selezionati))
+
+    #questa parte utile per salvare la mappatura caratteri
+    for symbol, valore in mappa_caratteri.items():
+        print(symbol + '=>>' + valore + '\n\r')
+    #fine mappatura
+        
+    # Finestra di dialogo per scegliere il file su cui lavorare
+    file_path = filedialog.askopenfilename(filetypes=[("File CSV", "*.csv, *.tsv"),
+                                                       ("Tutti i file", "*.*")],
+                                           title="Scegli il file da modificare")
+
+    if file_path:
+        # Esegue il replace dei simboli nel file
+        testo_sostituito = sostituisci_simboli(file_path, mappa_caratteri)
+
+        if testo_sostituito is not None:
+            # Salva il file con una finestra di dialogo
+            salva_file(testo_sostituito)
         
     finestra.destroy()
 
@@ -94,11 +151,11 @@ finestra = tk.Tk()
 finestra.title("MAP all Symbols to alphabet")
 
 # Crea una lista di variabili StringVar per tenere traccia delle selezioni nelle dropdown
-caratteri_da_mappare.insert(0, '<VUOTO>')
 caratteri_da_mappare.insert(0, '<ELIMINA RIGA>')
+caratteri_da_mappare.insert(0, '<VUOTO>')
 
 # Crea il pulsante Salva
-pulsante_salva = tk.Button(finestra, text="Salva", command=salva)
+pulsante_salva = tk.Button(finestra, text="Genera", command=genera)
 pulsante_salva.grid(row=100, column=1, columnspan=2, sticky="se", padx=10, pady=10)
 
 num_colonne = 2  # Numero di colonne
@@ -124,5 +181,10 @@ for indice, stringa in enumerate(simboli_da_mappare):
 
     # Aggiungi la dropdown alla lista
     dropdowns.append(dropdown)
+
+#add defalut value for all dropdowns
+for dd in dropdowns:
+    dd.current(0)
+    
 # Avvia il loop principale della finestra
 finestra.mainloop()
