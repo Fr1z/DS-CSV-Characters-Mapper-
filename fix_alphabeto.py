@@ -69,9 +69,6 @@ with open(csv_path, 'r', newline='', encoding='utf-8') as csvfile:
 print("\n\r\n\r")
 
 simboli_da_mappare = sorted(caratteri_non_presenti, key=len, reverse=True)
-#print(simboli_da_mappare)
-#print("\n\r\n\r")
-
 
 print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
 
@@ -83,6 +80,9 @@ def sostituisci_simboli(file_path, mappa_caratteri):
         for symbol, valore in mappa_caratteri.items():
             if valore == '<VUOTO>':
                 testo = testo.replace(symbol, '')
+            elif valore == '<IGNORA>':
+                #in teoria per , si ignora ma andrebbe replaced se dentro colonna testo
+                continue
             elif valore == '<ELIMINA RIGA>':
                 # Divide il testo in righe
                 righe = testo.splitlines()
@@ -98,6 +98,15 @@ def sostituisci_simboli(file_path, mappa_caratteri):
         print(f"Errore durante la lettura e sostituzione del file: {e}")
         return None
     
+def loadmap():
+    # Finestra di dialogo per scegliere il file di mapping
+    file_path = filedialog.askopenfilename(filetypes=[("File MAP", "*.MAP, *.txt"),
+                                                       ("Tutti i file", "*.*")],
+                                           title="Scegli il file con la mappatura caratteri")
+    if file_path:
+        for dd in dropdowns:
+            dd.current(1)
+
 def salva_file(testo_sostituito):
     try:
         file_destinazione = filedialog.asksaveasfilename(defaultextension=".csv",
@@ -111,6 +120,25 @@ def salva_file(testo_sostituito):
     except Exception as e:
         print(f"Errore durante il salvataggio del file: {e}")
 
+def salva_mappa(mappa_caratteri):
+    try:
+        file_destinazione = filedialog.asksaveasfilename(defaultextension=".MAP",
+                                                           filetypes=[("File MAP", "*.MAP"),
+                                                                      ("Tutti i file", "*.*")],
+                                                           title="Scegli la destinazione del file di mappa")
+        
+        #fine mappatura
+        if file_destinazione:
+            with open(file_destinazione, 'w', encoding='utf-8') as file:
+                for symbol, valore in mappa_caratteri.items():
+                    line=symbol + '=>>' + valore + '\n'
+
+                    file.write(line)
+                    print(line)
+
+            print(f"File salvato con successo in: {file_destinazione}")
+    except Exception as e:
+        print(f"Errore durante il salvataggio del file: {e}")
 ##PARTE GUI
 
 def genera():
@@ -121,8 +149,8 @@ def genera():
     mappa_caratteri = dict(zip(simboli_da_mappare, valori_selezionati))
 
     #questa parte utile per salvare la mappatura caratteri
-    for symbol, valore in mappa_caratteri.items():
-        print(symbol + '=>>' + valore + '\n\r')
+    #for symbol, valore in mappa_caratteri.items():
+    #    print(symbol + '=>>' + valore + '\n\r')
     #fine mappatura
         
     # Finestra di dialogo per scegliere il file su cui lavorare
@@ -138,6 +166,8 @@ def genera():
             # Salva il file con una finestra di dialogo
             salva_file(testo_sostituito)
         
+        salva_mappa(mappa_caratteri=mappa_caratteri)
+
     finestra.destroy()
 
 # Funzione chiamata quando si clicca su un'etichetta
@@ -152,16 +182,21 @@ finestra.title("MAP all Symbols to alphabet")
 
 # Crea una lista di variabili StringVar per tenere traccia delle selezioni nelle dropdown
 caratteri_da_mappare.insert(0, '<ELIMINA RIGA>')
+caratteri_da_mappare.insert(0, '<IGNORA>')
 caratteri_da_mappare.insert(0, '<VUOTO>')
-
-# Crea il pulsante Salva
-pulsante_salva = tk.Button(finestra, text="Genera", command=genera)
-pulsante_salva.grid(row=100, column=1, columnspan=2, sticky="se", padx=10, pady=10)
 
 num_colonne = 2  # Numero di colonne
 elementi_per_colonna = 20  # Numero di elementi per colonna
 
 dropdowns = [] # array delle dropdowns disposte
+
+# Crea il pulsante Carica Map
+pulsante_salva = tk.Button(finestra, text="Carica Mappatura", command=loadmap)
+pulsante_salva.grid(row=100, column=1, columnspan=2, sticky="se", padx=10, pady=10)
+
+# Crea il pulsante Salva
+pulsante_salva = tk.Button(finestra, text="Genera", command=genera)
+pulsante_salva.grid(row=100, column=2, columnspan=2, sticky="se", padx=10, pady=10)
 
 # Crea etichette e dropdown nella finestra
 for indice, stringa in enumerate(simboli_da_mappare):
