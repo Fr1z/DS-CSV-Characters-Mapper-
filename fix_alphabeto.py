@@ -6,6 +6,10 @@ from tkinter import ttk
 from tkinter import filedialog
 import tkinter.messagebox as messagebox
 import pyperclip
+#TODO 
+# valutare se farlo solo su csv -> replace only in column sentence -> formato pronto per stt
+# vlutare se applicare un replace anche per scorer e altri sources 
+
 
 # Inizializza un array vuoto per salvare i caratteri
 caratteri_da_mappare = ['<ELIMINA RIGA>', '<IGNORA>', '<VUOTO>', '<SPAZIO>']
