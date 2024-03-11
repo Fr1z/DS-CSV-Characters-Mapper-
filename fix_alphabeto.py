@@ -90,7 +90,7 @@ def sostituisci_simboli(file_path, mappa_caratteri):
                 # Divide il testo in righe
                 righe = testo.splitlines()
                 # Filtra le righe che contengono il carattere 'z'
-                righe_filtrate = [riga for riga in righe if valore not in riga]
+                righe_filtrate = [riga for riga in righe if symbol not in riga]
                 # Unisce le righe di nuovo in una stringa
                 testo = '\n'.join(righe_filtrate)
             else:
@@ -114,10 +114,9 @@ def carica_mappa():
 
                 if "###" in line: # Skip the first line
                     continue
-
-                chmap = line.split('=>>')
-                ddindex = simboli_da_mappare.index(chmap[0])
                 try:
+                    chmap = line.split('=>>')
+                    ddindex = simboli_da_mappare.index(chmap[0])
                     ddvalue = caratteri_da_mappare.index(chmap[1].strip())
                     #set dropdown value
                     dropdowns[ddindex].current(ddvalue)
