@@ -4,10 +4,11 @@ import os
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+import tkinter.messagebox as messagebox
 import pyperclip
 
 # Inizializza un array vuoto per salvare i caratteri
-caratteri_da_mappare = ['<ELIMINA RIGA>', '<IGNORA>', '<VUOTO>']
+caratteri_da_mappare = ['<ELIMINA RIGA>', '<IGNORA>', '<VUOTO>', '<SPAZIO>']
 
 # Apre il file "alphabet.txt" in modalità lettura
 with open('alphabet.txt', 'r', encoding='utf-8') as file:
@@ -86,6 +87,8 @@ def sostituisci_simboli(file_path, mappa_caratteri):
             elif valore == '<IGNORA>':
                 #in teoria per , si ignora ma andrebbe replaced se dentro colonna testo
                 continue
+            elif valore == '<SPAZIO>':
+                testo = testo.replace(symbol, ' ')
             elif valore == '<ELIMINA RIGA>':
                 # Divide il testo in righe
                 righe = testo.splitlines()
@@ -135,6 +138,10 @@ def salva_file(testo_sostituito):
             with open(file_destinazione, 'w', encoding='utf-8') as file:
                 file.write(testo_sostituito)
             print(f"File salvato con successo in: {file_destinazione}")
+
+            message = f"File salvato con successo in: {file_destinazione}"
+            messagebox.showinfo("Salvataggio completato", message)
+
     except Exception as e:
         print(f"Errore durante il salvataggio del file: {e}")
 
@@ -162,6 +169,9 @@ def salva_mappa():
                     print(line)
 
             print(f"File salvato con successo in: {file_destinazione}")
+            message = f"File Mappa caratteri salvato con successo in: {file_destinazione}"
+            messagebox.showinfo("Salvataggio completato", message)
+
     except Exception as e:
         print(f"Errore durante il salvataggio del file: {e}")
 
@@ -184,15 +194,16 @@ def genera():
 
     if file_path:
         # Esegue il replace dei simboli nel file
-        testo_sostituito = sostituisci_simboli(file_path, mappa_caratteri)
-
+        try: 
+            testo_sostituito = sostituisci_simboli(file_path, mappa_caratteri)
+        except Exception as e:
+            messagebox.showerror("Errore lettura file", e)
+            return
+        
         if testo_sostituito is not None:
             # Salva il file con una finestra di dialogo
             salva_file(testo_sostituito)
-        
-        
-
-    finestra.destroy()
+        return
 
 # Funzione chiamata quando si clicca su un'etichetta
 def copia_testo(event):
