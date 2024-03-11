@@ -7,7 +7,7 @@ from tkinter import filedialog
 import pyperclip
 
 # Inizializza un array vuoto per salvare i caratteri
-caratteri_da_mappare = []
+caratteri_da_mappare = ['<ELIMINA RIGA>', '<IGNORA>', '<VUOTO>']
 
 # Apre il file "alphabet.txt" in modalità lettura
 with open('alphabet.txt', 'r', encoding='utf-8') as file:
@@ -72,6 +72,9 @@ simboli_da_mappare = sorted(caratteri_non_presenti, key=len, reverse=True)
 
 print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
 
+
+##PARTE GUI
+
 def sostituisci_simboli(file_path, mappa_caratteri):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -97,16 +100,32 @@ def sostituisci_simboli(file_path, mappa_caratteri):
     except Exception as e:
         print(f"Errore durante la lettura e sostituzione del file: {e}")
         return None
-    
-def loadmap():
+
+def carica_mappa():
+
     # Finestra di dialogo per scegliere il file di mapping
-    file_path = filedialog.askopenfilename(filetypes=[("File MAP", "*.MAP, *.txt"),
+    file_path = filedialog.askopenfilename(filetypes=[("File MAP", "*.MAP *.txt"),
                                                        ("Tutti i file", "*.*")],
                                            title="Scegli il file con la mappatura caratteri")
     if file_path:
-        for dd in dropdowns:
-            dd.current(1)
+        with open(file_path, 'r', encoding='utf-8') as file:
+            file.readline()
+            for line in file:
 
+                if "###" in line: # Skip the first line
+                    continue
+
+                chmap = line.split('=>>')
+                ddindex = simboli_da_mappare.index(chmap[0])
+                try:
+                    ddvalue = caratteri_da_mappare.index(chmap[1].strip())
+                    #set dropdown value
+                    dropdowns[ddindex].current(ddvalue)
+                except ValueError as e:
+                    print(f"Errore valore dropdown: {e}")
+
+
+#chiamato da genera. salva il file di output
 def salva_file(testo_sostituito):
     try:
         file_destinazione = filedialog.asksaveasfilename(defaultextension=".csv",
@@ -120,7 +139,13 @@ def salva_file(testo_sostituito):
     except Exception as e:
         print(f"Errore durante il salvataggio del file: {e}")
 
-def salva_mappa(mappa_caratteri):
+
+def salva_mappa():
+    # Funzione chiamata quando si preme il pulsante "Salva mappa"
+    valori_selezionati = [dropdown.get() for dropdown in dropdowns]
+    # Creazione di un dizionario utilizzando zip
+    mappa_caratteri = dict(zip(simboli_da_mappare, valori_selezionati))
+
     try:
         file_destinazione = filedialog.asksaveasfilename(defaultextension=".MAP",
                                                            filetypes=[("File MAP", "*.MAP"),
@@ -130,6 +155,7 @@ def salva_mappa(mappa_caratteri):
         #fine mappatura
         if file_destinazione:
             with open(file_destinazione, 'w', encoding='utf-8') as file:
+                file.write("###Charachter MAP###\n")
                 for symbol, valore in mappa_caratteri.items():
                     line=symbol + '=>>' + valore + '\n'
 
@@ -139,7 +165,7 @@ def salva_mappa(mappa_caratteri):
             print(f"File salvato con successo in: {file_destinazione}")
     except Exception as e:
         print(f"Errore durante il salvataggio del file: {e}")
-##PARTE GUI
+
 
 def genera():
     # Funzione chiamata quando si preme il pulsante "Genera"
@@ -147,7 +173,6 @@ def genera():
 
     # Creazione di un dizionario utilizzando zip
     mappa_caratteri = dict(zip(simboli_da_mappare, valori_selezionati))
-
     #questa parte utile per salvare la mappatura caratteri
     #for symbol, valore in mappa_caratteri.items():
     #    print(symbol + '=>>' + valore + '\n\r')
@@ -166,7 +191,7 @@ def genera():
             # Salva il file con una finestra di dialogo
             salva_file(testo_sostituito)
         
-        salva_mappa(mappa_caratteri=mappa_caratteri)
+        
 
     finestra.destroy()
 
@@ -180,23 +205,22 @@ def copia_testo(event):
 finestra = tk.Tk()
 finestra.title("MAP all Symbols to alphabet")
 
-# Crea una lista di variabili StringVar per tenere traccia delle selezioni nelle dropdown
-caratteri_da_mappare.insert(0, '<ELIMINA RIGA>')
-caratteri_da_mappare.insert(0, '<IGNORA>')
-caratteri_da_mappare.insert(0, '<VUOTO>')
-
 num_colonne = 2  # Numero di colonne
 elementi_per_colonna = 20  # Numero di elementi per colonna
 
 dropdowns = [] # array delle dropdowns disposte
 
 # Crea il pulsante Carica Map
-pulsante_salva = tk.Button(finestra, text="Carica Mappatura", command=loadmap)
+pulsante_salva = tk.Button(finestra, text="Carica Mappatura", command=carica_mappa)
+pulsante_salva.grid(row=98, column=1, columnspan=2, sticky="se", padx=10, pady=10)
+
+# Crea il pulsante Salva
+pulsante_salva = tk.Button(finestra, text="Salva Mappatura", command=salva_mappa)
 pulsante_salva.grid(row=100, column=1, columnspan=2, sticky="se", padx=10, pady=10)
 
 # Crea il pulsante Salva
-pulsante_salva = tk.Button(finestra, text="Genera", command=genera)
-pulsante_salva.grid(row=100, column=2, columnspan=2, sticky="se", padx=10, pady=10)
+pulsante_genera = tk.Button(finestra, text="Genera", command=genera)
+pulsante_genera.grid(row=100, column=3, columnspan=2, sticky="se", padx=10, pady=10)
 
 # Crea etichette e dropdown nella finestra
 for indice, stringa in enumerate(simboli_da_mappare):
