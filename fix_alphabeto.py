@@ -41,9 +41,6 @@ try:
     with open(alphabet_path, 'r', encoding='utf-8') as file:
         # Legge ogni riga del file
         for riga in file:
-            # Rimuove eventuali spazi bianchi all'inizio e alla fine della riga
-            riga = riga.strip()
-            
             # Verifica se la riga inizia con il carattere '#'
             if not riga.startswith('#') and len(riga) > 0:
                 # Se la riga non inizia con '#', aggiunge (l unico?) carattere al array
@@ -146,6 +143,8 @@ def loadTXT(txt_path):
     print("\n\r\n\r")
     simboli_strani = sorted(caratteri_non_presenti, key=len, reverse=True)
     print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
+    if not len(caratteri_non_presenti):
+        messagebox.showinfo("Bene!", "il file è pulito, nessuna elaborazione richiesta")
     return simboli_strani
 
 
@@ -212,6 +211,8 @@ def loadCSV(csv_path):
     print("\n\r\n\r")
     simboli_da_mappare = sorted(caratteri_non_presenti, key=len, reverse=True)
     print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
+    if not len(caratteri_non_presenti):
+        messagebox.showinfo("Bene!", "la colonna del file csv risulta pulita, nessuna elaborazione richiesta")
     return simboli_da_mappare
 
 def final_clean(str):
@@ -311,9 +312,9 @@ def salva_csv():
 
                 indice_righe_valide = text_data.keys()
                 #righe csv originale
-                #input_file_rows = len(list(reader))
-                #rows_diff = input_file_rows-len(indice_righe_valide)
-                #print(f"Il file avrà {len(indice_righe_valide)} righe,{rows_diff} in meno rispetto le {input_file_rows} di partenza")
+                input_file_rows = len(list(reader))
+                rows_diff = input_file_rows-len(indice_righe_valide)
+                print(f"Il file avrà {len(indice_righe_valide)} righe,{rows_diff} in meno rispetto le {input_file_rows} di partenza")
                 
                 final_rows=[]
 
