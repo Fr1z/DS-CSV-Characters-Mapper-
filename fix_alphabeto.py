@@ -41,6 +41,7 @@ try:
     with open(alphabet_path, 'r', encoding='utf-8') as file:
         # Legge ogni riga del file
         for riga in file:
+            riga = riga.replace('\n', '')
             # Verifica se la riga inizia con il carattere '#'
             if not riga.startswith('#') and len(riga) > 0:
                 # Se la riga non inizia con '#', aggiunge (l unico?) carattere al array
