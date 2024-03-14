@@ -11,3 +11,6 @@ escludere righe con frasi o particelle troppo corte
 escludere tutto ciò che è ambiguo o insenstato per quel linguaggio
 mappare eventuali caratteri accentati nella singola lettera accentata
 separare le freasi per riga.
+
+TODO
+migliorare la lettura caratteri e simboli da replace, fixare caricamento mappatura e ultima dropdown

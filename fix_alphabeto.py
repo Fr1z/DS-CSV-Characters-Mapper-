@@ -14,10 +14,10 @@ import pyperclip
 
 
 # Inizializza un array vuoto per salvare i caratteri
-caratteri_da_mappare = ['<ELIMINA RIGA>', '<IGNORA>', '<VUOTO>', '<SPAZIO>']
+caratteri_da_mappare = ['<ELIMINA RIGA>', '<PERMETTI>', '<VUOTO>', '<SPAZIO>']
 simboli_da_mappare = []
-wavs_data = []
-text_data = []
+selected_column = ""
+text_data = {}
 file_input_path = ""
 
 # Verifica che sia fornito un argomento da riga di comando
@@ -100,6 +100,9 @@ def dropdowns_seeder(mappatura=[]):
 def load_file():
     global simboli_da_mappare
     global file_input_path
+    global text_data
+
+    text_data = {} #reset dei dati precedenti
     # Finestra di dialogo per scegliere il file su cui lavorare
     file_path = filedialog.askopenfilename(filetypes=[("File CSV or TXT", "*.csv *.tsv *.txt"),
                                                        ("Tutti i file", "*.*")],
@@ -126,8 +129,8 @@ def loadTXT(txt_path):
         last = False #permette di raggruppare i caratteri strani vicini per poi mapparli ad un unico symbol
         symbol = ''
 
-        for riga in reader:
-            text_data.append(riga)
+        for i, riga in enumerate(reader):
+            text_data[i] = riga.lower()
             for carat in riga:
                 if carat not in caratteri_da_mappare and carat not in caratteri_non_presenti: #and not in symboli da mapapre (global) cancellare tutti 
                     last=True
@@ -146,26 +149,22 @@ def loadTXT(txt_path):
     return simboli_strani
 
 
-def setColumns(wav_path="", sentecetext=""):
-        global selected_columns
-        selected_columns = [wav_path, sentecetext]
-        print(selected_columns)
+def setColumns(selected=""):
+        global selected_column
+        selected_column = selected
+        print(selected_column)
 
 def loadColumns(reader):
     selectcolumngGUI = tk.Tk()
-    selectcolumngGUI.title("Select Column Values")
+    selectcolumngGUI.title("Select Column in Table")
     frame = ttk.Frame(selectcolumngGUI, padding="10")
     frame.grid(row=1, column=1, sticky=(tk.W, tk.E, tk.N, tk.S))
-    etichetta = tk.Label(frame, text="WAV Filename")
+    etichetta = tk.Label(frame, text="Colonna da elaborare")
     etichetta.grid(row=0, column=0, padx=5, pady=5, sticky="e")
     combo1 = ttk.Combobox(frame, state="readonly", values=reader.fieldnames)
     combo1.grid(row=0, column=1, sticky=tk.W, padx=(0, 10))
-    etichetta = tk.Label(frame, text="Transcript",cursor="hand2")
-    etichetta.grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    combo2 = ttk.Combobox(frame, state="readonly", values=reader.fieldnames)
-    combo2.grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
     submit_button = ttk.Button(frame, text="Set", command=lambda: [ 
-        setColumns(combo1.get(), combo2.get()), 
+        setColumns(combo1.get()), 
         selectcolumngGUI.destroy(),
         selectcolumngGUI.quit()
     ] )
@@ -173,7 +172,7 @@ def loadColumns(reader):
     selectcolumngGUI.mainloop()
     
 def loadCSV(csv_path):
-    global selected_columns, text_data, wavs_data
+    global selected_column, text_data
     # Array per salvare le frasi dalla colonna "sentence"
     caratteri_non_presenti = []
     # Apre il file CSV in modalità lettura
@@ -185,21 +184,18 @@ def loadCSV(csv_path):
         #and un set button to close this gui and pick the values selected
         loadColumns(reader)
 
-        vaws_column = selected_columns[0]
-        text_column = selected_columns[1]
+        text_column = selected_column
 
-        for riga in reader:
-            valore_wav = riga[vaws_column]
-            valore_text = riga[text_column]
-            wavs_data.append(valore_wav)
-            text_data.append(valore_text)
+        for i, riga in enumerate(reader):
+            valore_text = riga[text_column].lower() #automatically to lowercase here avoids more mapping
+            text_data[i] = valore_text
 
         last = False #permette di raggruppare i caratteri strani vicini per poi mapparli ad un unico symbol
         symbol = ''
 
         # Legge il contenuto di tutte le righe della colonna "sentence"
         #estrae le sequenze caratteri non presenti in alphabet
-        for riga in text_data:
+        for riga in text_data.values():
             for carat in riga:
                 if carat not in caratteri_da_mappare and carat not in caratteri_non_presenti:
                     last=True
@@ -218,46 +214,37 @@ def loadCSV(csv_path):
     print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
     return simboli_da_mappare
 
+def final_clean(str):
+    return str.strip().replace('\n', ' ')
+
 def sostituisci_simboli(mappa_caratteri):
-    global file_input_path, wavs_data, text_data
-    file_path = file_input_path
+    global text_data
 
+    new_text_data = {}
     try:
-        testo = '\n'.join(text_data)
-        for symbol, valore in mappa_caratteri.items():
-            if valore == '<VUOTO>':
-                testo = testo.replace(symbol, '')
-            elif valore == '<IGNORA>':
-                #in teoria per , si ignora ma andrebbe replaced se dentro colonna testo
-                continue
-            elif valore == '<SPAZIO>':
-                testo = testo.replace(symbol, ' ')
-            elif valore == '<ELIMINA RIGA>':
-                # Divide il testo in righe
-                righe = testo.splitlines()
-                # Filtra le righe che contengono il carattere 'z'
-                righe_filtrate = [riga for riga in testo if symbol not in riga]
-                #se sto sostituendo su un csv devo eliminare la wav della riga corrispondente a quella filtrata
-                if not file_path.upper().endswith(".TXT"):
-                    #TODO rifare il sostituisci simboli che non faccia la join di text_data perchè se csv ci mette una vita a trovare l indice ed eliminarlo
-                    #fa una diff tra righe e righe_filtrate
-                    #trovando tutti gli indici delle righe eliminate (e reimposta anche le wavs)
-                    # Find the indices where an element of a is not in b
-                    indici_da_eliminare = [i for i, riga in enumerate(righe) if riga not in righe_filtrate]
-                    wavs_data = [wav for i, wav in enumerate(wavs_data) if i not in indici_da_eliminare]
-                
-                # Unisce le righe di nuovo in una stringa
-                testo = '\n'.join(righe_filtrate)
-            else:
-                testo = testo.replace(symbol, valore)
+        for i, riga in text_data.items():
+            testo = riga
+            for symbol, valore in mappa_caratteri.items():
+                if symbol in riga:
+                    if valore == '<VUOTO>':
+                        testo = testo.replace(symbol, '')
+                    elif valore == '<SPAZIO>':
+                        testo = testo.replace(symbol, ' ')
+                    elif valore == '<ELIMINA RIGA>':
+                        testo = ""
+                    else:
+                        testo = testo.replace(symbol, valore)
+            #se è rimasto qualcosa al testo pulito rimettilo nel text_data
+            if len(testo):
+                new_text_data[i] = final_clean(testo)
 
-        return testo
+        text_data = new_text_data
+        return text_data
     except Exception as e:
         print(f"Errore durante la lettura e sostituzione del file: {e}")
         return None
     
 
-        
 def carica_mappa():
     global simboli_da_mappare
     
@@ -295,7 +282,8 @@ def salva_file():
                                                            title="Scegli la destinazione")
         if file_destinazione:
             with open(file_destinazione, 'w', encoding='utf-8') as file:
-                file.write(text_data)
+                globaltext = '\n'.join(text_data.values())
+                file.write(globaltext)
             print(f"File salvato con successo in: {file_destinazione}")
 
             message = f"File salvato con successo in: {file_destinazione}"
@@ -306,31 +294,57 @@ def salva_file():
 
 #chiamato da genera. salva il file di output
 def salva_csv():
-    global text_data, wavs_data
+    global text_data, file_input_path, selected_column
     # Define the column names
-    column_names = ["wav_filename", "wav_filesize", "transcript"]
-    try:
-        file_destinazione = filedialog.asksaveasfilename(defaultextension=".csv",
-                                                           filetypes=[("File CSV", "*.csv"),
-                                                                      ("Tutti i file", "*.*")],
-                                                           title="Scegli la destinazione")
-        if file_destinazione:
-            with open(file_destinazione, 'w', encoding='utf-8') as csvfile:
-                # Create a CSV writer object
-                writer = csv.writer(csvfile, delimiter=",")
-                    # Write the column names to the CSV file
-                writer.writerow(column_names)
+    #column_names = ["wav_filename", "wav_filesize", "transcript"]
+    file_destinazione = filedialog.asksaveasfilename(defaultextension=".csv",
+                                                       filetypes=[("File CSV", "*.csv"),
+                                                                  ("Tutti i file", "*.*")],
+                                                       title="Scegli la destinazione")
+    if file_destinazione and file_input_path:
+        try:
+            with open(file_input_path, 'r', encoding='utf-8') as csvread:
 
-                # Write the data to the CSV file
-                for i in range(len(wavs_data)):
-                    writer.writerow([wavs_data[i], "0", text_data[i]])
+                print(f"read from {file_input_path} \n")
+                reader = csv.DictReader(csvread, delimiter="\t")
+                column_names = reader.fieldnames
 
-            print(f"File salvato con successo in: {file_destinazione}")
-            message = f"File salvato con successo in: {file_destinazione}"
-            messagebox.showinfo("Salvataggio completato", message)
+                indice_righe_valide = text_data.keys()
+                #righe csv originale
+                #input_file_rows = len(list(reader))
+                #rows_diff = input_file_rows-len(indice_righe_valide)
+                #print(f"Il file avrà {len(indice_righe_valide)} righe,{rows_diff} in meno rispetto le {input_file_rows} di partenza")
+                
+                final_rows=[]
 
-    except Exception as e:
-        print(f"Errore durante il salvataggio del file: {e}")
+                for i, riga in enumerate(reader):
+                    if i in indice_righe_valide:
+                        row = {}
+                        for column in column_names:
+                            if column == selected_column:
+                                row[column] = text_data[i]
+                            else:
+                                row[column] = riga[column]
+                        final_rows.append(row)
+
+                with open(file_destinazione, 'w', encoding='utf-8', newline='') as csvfile:
+                    # Create a CSV writer object
+                    writer = csv.DictWriter(csvfile, fieldnames=column_names, delimiter="\t")
+                    
+                    # Scriviamo i nomi delle colonne nel file di output
+                    writer.writeheader()
+                    
+                    #scriviamo i dati puliti sul csv finale
+                    writer.writerows(final_rows)
+
+                    print(f"File salvato con successo in: {file_destinazione}")
+                    message = f"File salvato con successo in: {file_destinazione} con {len(final_rows)} righe"
+                    messagebox.showinfo("Salvataggio completato", message)
+
+        except Exception as e:
+            print(f"Errore durante il salvataggio del csv: {e}")
+            message = f"errore durante il salvataggio: {e}"
+            messagebox.showerror("Errore durante il salvataggio", message)
 
 
 def salva_mappa():
@@ -383,9 +397,9 @@ def genera():
         # Salva il file con una finestra di dialogo
         if testo_sostituito is not None:
             if file_input_path.upper().endswith(".TXT"):
-                salva_file(testo_sostituito)
+                salva_file()
             else:
-                salva_csv(testo_sostituito)
+                salva_csv()
         return
 
 # Funzione chiamata quando si clicca su un'etichetta
