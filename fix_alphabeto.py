@@ -266,7 +266,7 @@ def carica_mappa():
                 try:
                     chmap = line.split('=>>')
                     simboli_da_mappare.append(chmap[0])
-                    mapping.append(chmap[1].strip())
+                    mapping.append(chmap[1].replace('\n',''))
                 except ValueError as e:
                     print(f"Errore valore dropdown: {e}")
 
@@ -313,9 +313,9 @@ def salva_csv():
 
                 indice_righe_valide = text_data.keys()
                 #righe csv originale
-                input_file_rows = len(list(reader))
-                rows_diff = input_file_rows-len(indice_righe_valide)
-                print(f"Il file avrà {len(indice_righe_valide)} righe,{rows_diff} in meno rispetto le {input_file_rows} di partenza")
+                #input_file_rows = len(list(reader))
+                #rows_diff = input_file_rows-len(indice_righe_valide)
+                #print(f"Il file avrà {len(indice_righe_valide)} righe,{rows_diff} in meno rispetto le {input_file_rows} di partenza")
                 
                 final_rows=[]
 
