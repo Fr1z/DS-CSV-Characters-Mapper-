@@ -261,12 +261,14 @@ def carica_mappa():
             mapping = []
 
             for line in file:
+                line.replace('\n','')
                 if "###" in line: # Skip the first line
                     continue
                 try:
                     chmap = line.split('=>>')
-                    simboli_da_mappare.append(chmap[0])
-                    mapping.append(chmap[1].replace('\n',''))
+                    if len(chmap)==2:
+                        simboli_da_mappare.append(chmap[0])
+                        mapping.append(chmap[1])
                 except ValueError as e:
                     print(f"Errore valore dropdown: {e}")
 
