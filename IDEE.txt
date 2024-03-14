@@ -1,0 +1,13 @@
+Questo sarà un tool generale che data una colonna di un CSV o un grosso file di testo 
+riesca a pulire le espressioni e caratteri che non fanno parte dell alfabeto definito per il training.
+In futuro si potrebbe anche decidere di appoggiarsi ad un grande dizionario e vedere se ci sono parole in frasi che non dovrebbero esserci per quel linguaggio..
+
+passaggi di pulizia sono.
+
+rendere tutto minuscolo o maiuscolo
+rimuovere i tag di formattazione tipo ::emote:: o <html> o ~:special
+mappare le cifre nelle corrispondenti lettere es. 1 uno . 21 ventuno 123 centoventitrè
+escludere righe con frasi o particelle troppo corte
+escludere tutto ciò che è ambiguo o insenstato per quel linguaggio
+mappare eventuali caratteri accentati nella singola lettera accentata
+separare le freasi per riga.
