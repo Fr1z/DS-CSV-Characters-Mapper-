@@ -6,7 +6,8 @@ from tkinter import ttk
 from tkinter import filedialog
 import tkinter.messagebox as messagebox
 import pyperclip
-
+from num2words import num2words
+#num2words(numero, lang='it')
 
 #TODO 
 # CSV -> replace only in column sentence -> formato pronto per stt
@@ -19,6 +20,7 @@ simboli_da_mappare = []
 selected_column = ""
 text_data = {}
 file_input_path = ""
+min_words = 1
 
 # Verifica che sia fornito un argomento da riga di comando
 if len(sys.argv) > 2:
@@ -41,7 +43,7 @@ try:
     with open(alphabet_path, 'r', encoding='utf-8') as file:
         # Legge ogni riga del file
         for riga in file:
-            riga = riga.replace('\n', '')
+            riga = riga.replace('\r', '').replace('\n', '')
             # Verifica se la riga inizia con il carattere '#'
             if not riga.startswith('#') and len(riga) > 0:
                 # Se la riga non inizia con '#', aggiunge (l unico?) carattere al array
@@ -69,14 +71,14 @@ def dropdowns_seeder(mappatura=[]):
             colonna = indice // elementi_per_colonna
 
             etichetta = tk.Label(frame, text=stringa,cursor="hand2")
-            etichetta.grid(row=riga, column=colonna * 2, padx=5, pady=5, sticky="w")
+            etichetta.grid(row=riga, column=colonna * 2, padx=3, pady=3, sticky="w")
 
             # Aggiungi la funzione di copia_testo alla lista degli eventi del clic
             etichetta.bind("<Button-1>", copia_testo)
             
             valore_selezionato = tk.StringVar()
             dropdown = ttk.Combobox(frame, values=caratteri_da_mappare, textvariable=valore_selezionato)
-            dropdown.grid(row=riga, column=colonna * 2 + 1, padx=5, pady=5, sticky="w")
+            dropdown.grid(row=riga, column=colonna * 2 + 1, padx=3, pady=3, sticky="w")
 
             # Aggiungi la dropdown alla lista
             dropdowns.append(dropdown)
@@ -118,6 +120,7 @@ def load_file():
 
 
 def loadTXT(txt_path):
+    num2words_enabled = ask_num2words_question()
     # Array per salvare le frasi dalla colonna "sentence"
     caratteri_non_presenti = []
     # Apre il file CSV in modalità lettura
@@ -128,6 +131,13 @@ def loadTXT(txt_path):
         symbol = ''
 
         for i, riga in enumerate(reader):
+            #Se abilitato converte i digits in words
+            if num2words_enabled:
+                # Convert the digits to words
+                words = [num2words(int(word), lang="it") if word.isdigit() else word for word in riga.split()]
+                # Join the words into a single string
+                riga = " ".join(words)
+
             text_data[i] = riga.lower()
             for carat in riga:
                 if carat not in caratteri_da_mappare and carat not in caratteri_non_presenti: #and not in symboli da mapapre (global) cancellare tutti 
@@ -148,6 +158,13 @@ def loadTXT(txt_path):
         messagebox.showinfo("Bene!", "il file è pulito, nessuna elaborazione richiesta")
     return simboli_strani
 
+
+# Ask a YES or NO num2words
+def ask_num2words_question():
+    result = messagebox.askyesno("Question", "Do you want to replace numbers to words?")
+    if result:
+        return True
+    return False
 
 def setColumns(selected=""):
         global selected_column
@@ -172,6 +189,7 @@ def loadColumns(reader):
     selectcolumngGUI.mainloop()
     
 def loadCSV(csv_path):
+    num2words_enabled = ask_num2words_question()
     global selected_column, text_data
     # Array per salvare le frasi dalla colonna "sentence"
     caratteri_non_presenti = []
@@ -182,18 +200,25 @@ def loadCSV(csv_path):
         reader = csv.DictReader(csvfile, delimiter="\t")
         #Open a Tkinker gui with two combobox to select a value in reader.fieldnames array
         #and un set button to close this gui and pick the values selected
-        loadColumns(reader)
 
-        text_column = selected_column
-
+        loadColumns(reader) # now we should have a "selected_column"
+        
         for i, riga in enumerate(reader):
-            valore_text = riga[text_column].lower() #automatically to lowercase here avoids more mapping
+            valore_text = riga[selected_column].lower() #automatically to lowercase here avoids more mapping
+            
+            #Se abilitato converte i digits in words
+            if num2words_enabled:
+                # Convert the digits to words
+                words = [num2words(int(word), lang="it") if word.isdigit() else word for word in valore_text.split()]
+                # Join the words into a single string
+                valore_text = " ".join(words)
+
             text_data[i] = valore_text
 
         last = False #permette di raggruppare i caratteri strani vicini per poi mapparli ad un unico symbol
         symbol = ''
 
-        # Legge il contenuto di tutte le righe della colonna "sentence"
+        # Legge il contenuto di tutte le righe della colonna selezionata
         #estrae le sequenze caratteri non presenti in alphabet
         for riga in text_data.values():
             for carat in riga:
@@ -217,10 +242,11 @@ def loadCSV(csv_path):
     return simboli_da_mappare
 
 def final_clean(str):
-    return str.strip().replace('\n', ' ')
+    return str.strip().replace('\r', '').replace('\n', '')
 
 def sostituisci_simboli(mappa_caratteri):
-    global text_data
+    global text_data, min_words
+    updateMinWords()
 
     new_text_data = {}
     try:
@@ -237,7 +263,7 @@ def sostituisci_simboli(mappa_caratteri):
                     else:
                         testo = testo.replace(symbol, valore)
             #se è rimasto qualcosa al testo pulito rimettilo nel text_data
-            if len(testo):
+            if len(testo) and len(testo.split()) > min_words:
                 new_text_data[i] = final_clean(testo)
 
         text_data = new_text_data
@@ -257,7 +283,7 @@ def carica_mappa():
     if file_path:
         with open(file_path, 'r', encoding='utf-8') as file:
             file.readline()
-            #reset prev map
+            #create new mapping
             mapping = []
 
             for line in file:
@@ -267,8 +293,17 @@ def carica_mappa():
                 try:
                     chmap = line.split('=>>')
                     if len(chmap)==2:
-                        simboli_da_mappare.append(chmap[0])
-                        mapping.append(chmap[1])
+                        simbolo = chmap[0] #strip?
+                        valore = chmap[1].replace('\r\n', '')
+                       
+                        if simbolo in simboli_da_mappare:
+                            #Se il simbolo da mappare è già stato messo in colonna sostituiscine il valore
+                            i = simboli_da_mappare.index(simbolo)
+                            mapping[i] = valore
+                        else:
+                            #aggiungi simbolo da mappare alle dropdown
+                            simboli_da_mappare.append(simbolo)
+                            mapping.append(valore)
                 except ValueError as e:
                     print(f"Errore valore dropdown: {e}")
 
@@ -368,7 +403,7 @@ def salva_mappa():
             with open(file_destinazione, 'w', encoding='utf-8') as file:
                 file.write("###Charachter MAP###\n")
                 for symbol, valore in mappa_caratteri.items():
-                    line=symbol + '=>>' + valore + '\n'
+                    line=symbol + '=>>' + valore + '\r\n'
 
                     file.write(line)
                     print(line)
@@ -380,6 +415,13 @@ def salva_mappa():
     except Exception as e:
         print(f"Errore durante il salvataggio del file: {e}")
 
+def updateMinWords():
+    global min_words
+    min_words = int(entry_min_words.get())
+
+def new_map():
+    return
+    
 
 def genera():
     global file_input_path
@@ -418,29 +460,38 @@ def copia_testo(event):
 finestra = tk.Tk()
 finestra.title("MAP all Symbols to alphabet")
 
-num_colonne = 2  # Numero di colonne
 elementi_per_colonna = 20  # Numero di elementi per colonna
 
 dropdowns = [] # array delle dropdowns disposte
 
 frame = ttk.Frame(finestra, padding="10")
-frame.grid(row=20, column=6, sticky=(tk.W, tk.E, tk.N, tk.S))
+frame.grid(row=20, column=8, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+
 
 # Crea il pulsante Carica Map
 pulsante_load = tk.Button(frame, text="Carica File", command=load_file)
-pulsante_load.grid(row=22, column=4, columnspan=1, sticky="sw", padx=10, pady=10)
+pulsante_load.grid(row=22, column=5, columnspan=1, sticky="sw", padx=10, pady=10)
 
 # Crea il pulsante Carica Map
 pulsante_carica_map = tk.Button(frame, text="Carica Mappatura", command=carica_mappa)
-pulsante_carica_map.grid(row=21, column=5, columnspan=1, sticky="sw", padx=10, pady=10)
+pulsante_carica_map.grid(row=21, column=6, columnspan=1, sticky="sw", padx=10, pady=10)
 
 # Crea il pulsante Salva
 pulsante_salva_map = tk.Button(frame, text="Salva Mappatura", command=salva_mappa)
-pulsante_salva_map.grid(row=22, column=5, columnspan=1, sticky="sw", padx=10, pady=10)
+pulsante_salva_map.grid(row=22, column=6, columnspan=1, sticky="sw", padx=10, pady=10)
+
+# Crea il pulsante Aggiungi Map
+pulsante_addmap = tk.Button(frame, text="Aggiungi Custom Map", command=new_map)
+pulsante_addmap.grid(row=21, column=7, columnspan=1, sticky="sw", padx=10, pady=10)
+
+# Crea contatore di parole minimo
+entry_min_words = tk.Entry(frame, text="0")
+entry_min_words.grid(row=22, column=7, columnspan=1, sticky="sw", padx=10, pady=10)
 
 # Crea il pulsante Genera Clean
-pulsante_genera = tk.Button(frame, text="Salva File", command=genera)
-pulsante_genera.grid(row=22, column=6, columnspan=1, sticky="se", padx=10, pady=10)
-    
+pulsante_genera = tk.Button(frame, text="Esporta File Pulito", command=genera)
+pulsante_genera.grid(row=22, column=8, columnspan=1, sticky="se", padx=10, pady=10)
+
 # Avvia il loop principale della finestra
 finestra.mainloop()
