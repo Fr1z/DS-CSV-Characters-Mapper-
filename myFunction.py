@@ -103,8 +103,8 @@ def load_file():
 
 
 def loadTXT(txt_path):
-    global text_data
     num2words_enabled = ask_num2words_question()
+    global text_data
     # Array per salvare le frasi dalla colonna "sentence"
     caratteri_non_presenti = []
     # Apre il file CSV in modalità lettura
@@ -118,9 +118,9 @@ def loadTXT(txt_path):
             #Se abilitato converte i digits in words
             if num2words_enabled:
                 # Convert the digits to words
-                words = [num2words(int(word), lang="it") if word.isdigit() else word for word in riga.split()]
+                words = [num2words(int(word), lang="it") if word.isdigit() else word for word in riga.split(' ')]
                 # Join the words into a single string
-                riga = " ".join(words)
+                riga = ' '.join(words)
 
             riga = riga.lower()
             text_data[i] = riga
@@ -190,14 +190,14 @@ def loadCSV(csv_path):
         loadColumns(reader) # now we should have a "selected_column"
         
         for i, riga in enumerate(reader):
-            valore_text = riga[selected_column].lower() #automatically to lowercase here avoids more mapping
+            valore_text = riga[selected_column].lower() #automatically to lowercase here avoids more mapping #TODO must be option
             
             #Se abilitato converte i digits in words
             if num2words_enabled:
                 # Convert the digits to words
-                words = [num2words(int(word), lang="it") if word.isdigit() else word for word in valore_text.split('\s')]
+                words = [num2words(int(word), lang="it") if word.isdigit() else word for word in valore_text.split(' ')]
                 # Join the words into a single string
-                valore_text = " ".join(words)
+                valore_text = ' '.join(words)
 
             text_data[i] = valore_text
 
@@ -230,22 +230,23 @@ def loadCSV(csv_path):
 
 def final_clean(str):
     str = rimuove_spazi_multipli = re.sub(r'\s+', ' ', str)
-    return str.strip().replace('\r', '').replace('\n', '')
+    return str.strip()
 
 def sostituisci_simboli(mappa_caratteri):
-    global min_words, text_data
     updateMinWords()
+    global min_words
+    global text_data
 
     new_text_data = {}
     try:
         for i, riga in text_data.items():
             testo = riga
             for symbol, valore in mappa_caratteri.items():
-                #fix sui tab
-                if "[TAB]" in symbol:
-                    symbol.replace( "[TAB]", "\t" )
-                elif "[SPAZIO]" in symbol:
-                    symbol.replace( "[SPAZIO]", ' ' )
+                #fix sui simboli speciali
+                if symbol == "[TAB]":
+                    symbol = "\t"
+                if symbol == "[SPAZIO]":
+                    symbol = " "
 
                 if symbol in riga:
                     if valore == '<VUOTO>':
@@ -254,17 +255,21 @@ def sostituisci_simboli(mappa_caratteri):
                         testo = testo.replace(symbol, ' ')
                     elif valore == '<ELIMINA RIGA>':
                         testo = ""
+                    elif valore == '<PERMETTI>':
+                        valore = symbol
                     else:
                         testo = testo.replace(symbol, valore)
             #se è rimasto qualcosa al testo pulito rimettilo nel text_data
             testo_pulito = final_clean(testo)
-            if len(testo_pulito) and len(testo_pulito.split()) > min_words:
+            if len(testo_pulito) and len(testo_pulito.split(' ')) >= min_words:
                 new_text_data[i] = testo_pulito
     except Exception as e:
         print(f"Errore durante la lettura e sostituzione del file: {e}")
         return False
     
-    return new_text_data
+    text_data = new_text_data.copy()
+
+    return text_data
 
 def carica_mappa():
     global simboli_da_mappare
@@ -299,7 +304,6 @@ def carica_mappa():
 #chiamato da genera. salva il file di output
 def salva_file():
     global text_data
-
     try:
         file_destinazione = filedialog.asksaveasfilename(defaultextension=".txt",
                                                            filetypes=[("File TXT", "*.txt"),
@@ -439,7 +443,6 @@ def new_map(simbolo):
 def genera():
     global file_input_path
     global simboli_da_mappare
-    global text_data
 
     # Funzione chiamata quando si preme il pulsante "Genera"
     valori_selezionati = [dropdown.get() for dropdown in dropdowns]
@@ -448,12 +451,10 @@ def genera():
     mappa_caratteri = dict(zip(simboli_da_mappare, valori_selezionati))
 
     if file_input_path:
-
         # Salva il file con una finestra di dialogo
-        text_data = sostituisci_simboli(mappa_caratteri)
-        
-        output_data = text_data
-        if  output_data != False:
+        output_data = sostituisci_simboli(mappa_caratteri)
+    
+        if output_data != False:
             if file_input_path.upper().endswith(".TXT"):
                 salva_file()
             else:
