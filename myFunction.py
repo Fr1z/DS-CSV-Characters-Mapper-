@@ -79,6 +79,10 @@ def dropdowns_seeder(mappatura={}):
         else:
             #default value
             dd.current(0)
+    
+    # Set the scroll region to the size of the frame
+    finestra.item_canvas.config(scrollregion=finestra.item_canvas.bbox("all"))
+    finestra.item_canvas.configure(background='#ffffca') 
 
 def load_file():
     global simboli_da_mappare
@@ -478,9 +482,21 @@ def gui_init():
 
     dropdowns = [] # array delle dropdowns disposte
 
-    frame = ttk.Frame(finestra, padding="10")
-    frame.grid(row=20, column=8, sticky=(tk.W, tk.E, tk.N, tk.S))
+    finestra.xbar = tk.Scrollbar(finestra, orient="horizontal")
+    finestra.ybar = tk.Scrollbar(finestra)
+    finestra.item_canvas = tk.Canvas(finestra, width=1720, height=960,
+                                     xscrollcommand=finestra.xbar.set,
+                                     yscrollcommand=finestra.ybar.set)
+    finestra.item_canvas.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
 
+    finestra.xbar.grid(row=1, column=0, sticky="ew")
+    finestra.ybar.grid(row=0, column=1, sticky="ns")
+    finestra.grid_rowconfigure(0, weight=1)
+    finestra.grid_columnconfigure(0, weight=1)
+
+    frame = ttk.Frame(finestra.item_canvas, padding="10")
+
+    frame.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
 
 
     # Crea il pulsante Carica File
@@ -506,6 +522,9 @@ def gui_init():
     # Crea il pulsante Genera Clean
     pulsante_genera = tk.Button(frame, text="Esporta File Pulito", command=genera)
     pulsante_genera.grid(row=22, column=8, columnspan=1, sticky="se", padx=10, pady=10)
-
+    
+    # Set the scroll region to the size of the frame
+    finestra.item_canvas.config(scrollregion=finestra.item_canvas.bbox("all"))
+    finestra.item_canvas.configure(background='#ffffca') 
     # Avvia il loop principale della finestra
     finestra.mainloop()

@@ -20,10 +20,6 @@ import tkinter.messagebox as messagebox
 pattern = r'dbo:abstract """(.*?)(?="""|<script)'
 
 
-# Define the regular expression pattern for HTML tags
-html_pattern = r'<.*?>'
-
-
 def read_abstracts_from_ttl_file(file_path):
     # Open the Turtle Text file in read mode with UTF-8 encoding
     with open(file_path, "r", encoding="utf-8") as f:
@@ -41,17 +37,41 @@ def write_txt(matches):
                                                                       ("Tutti i file", "*.*")],
                                                            title="Scegli la destinazione")
         if file_destinazione:
-            with open(file_destinazione, 'w', encoding='utf-8') as file:
+            with open(file_destinazione, 'w', encoding='utf-8', newline=None) as file:
+                prohibited_chars = ["http:", "\\", "/", "{"]
                 # Print the matched text
                 for match in matches:
+                    final_string = match
                     # Remove HTML tags from the string
-                    final_string = re.sub(html_pattern, '', match)
-                    final_string = final_string.strip().replace('.', '\n') 
+                    final_string = re.sub(r'\<.*?\>', '', final_string)
+                    # remove numeri tra ()
+                    final_string = re.sub(r'\((\d+)\)', '', final_string)
+                    # remove numeri tra []
+                    final_string = re.sub(r'\[(\d+)\]', '', final_string)
 
-                    if not final_string.endswith('\n'):
-                        final_string += '\n'
+                    # riduci più ... in un solo .
+                    final_string = re.sub(r'(\.+)', '.', final_string)
 
-                    file.write(final_string)
+                    #split on multiple delimeters
+                    final_string = final_string.replace("\r", "\t").replace("\n", "\t").replace(";", "\t").replace(".", "\t")
+
+                    good_lines = []
+                    for line_string in final_string.split("\t"):
+                        if len(line_string)<16 or len(line_string.split()) < 3:
+                            continue
+                        if any(char in line_string for char in prohibited_chars):
+                            continue
+
+                        #rimuove spazi multilpi
+                        line_string = re.sub(r'\s+', ' ', line_string)
+                        
+                        good_lines.append(line_string.strip())
+
+                    final_string = "\n".join(good_lines)
+
+                    if len(final_string)>10:
+                        final_string = final_string + "\n"
+                        file.write(final_string)
 
     except Exception as e:
         print(f"Errore scrittura {e}")
