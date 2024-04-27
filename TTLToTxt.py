@@ -70,7 +70,7 @@ def write_txt(matches):
                     final_string = "\n".join(good_lines)
 
                     if len(final_string)>10:
-                        final_string = final_string + "\n"
+                        final_string = final_string.strip() + "\n"
                         file.write(final_string)
 
     except Exception as e:

@@ -42,7 +42,11 @@ def dropdowns_seeder(mappatura={}):
     global elementi_per_colonna
     global finestra
     global frame
+    global load_mapper
 
+    if not load_mapper:
+        return
+    
     # Pulizia vecchie dropdown e label
     for widget in frame.winfo_children():
         if widget.winfo_class() in ['Label', 'TCombobox']:
@@ -88,6 +92,7 @@ def load_file():
     global simboli_da_mappare
     global file_input_path
     global text_data
+    global load_mapper
 
     text_data = {} #reset dei dati precedenti
     # Finestra di dialogo per scegliere il file su cui lavorare
@@ -96,6 +101,7 @@ def load_file():
                                            title="Scegli il file da modificare")
 
     if file_path:
+        load_mapper = True
         file_input_path = file_path
         if file_path.upper().endswith(".TXT"):
             simboli_da_mappare = loadTXT(file_path)
@@ -108,9 +114,10 @@ def load_file():
 
 def loadTXT(txt_path):
     num2words_enabled = ask_num2words_question()
-    global text_data
+    global text_data, load_mapper
     # Array per salvare le frasi dalla colonna "sentence"
     caratteri_non_presenti = []
+
     # Apre il file CSV in modalità lettura
     with open(txt_path, 'r', newline='\n', encoding='utf-8') as txtfile:
         # Utilizza il modulo csv per leggere il contenuto
@@ -146,6 +153,10 @@ def loadTXT(txt_path):
     print("Caratteri strani trovati: " + str(len(caratteri_non_presenti)))
     if not len(caratteri_non_presenti):
         messagebox.showinfo("Bene!", "il file è pulito, nessuna elaborazione richiesta")
+    if len(caratteri_non_presenti)>mapper_max_number:
+        load_mapper = False
+        messagebox.showwarning(title="too much symbols", message="Please choose a map file to clean common symbols, others will be deleted.")
+
     return simboli_strani
 
 
@@ -180,7 +191,7 @@ def loadColumns(reader):
     
 def loadCSV(csv_path):
     num2words_enabled = ask_num2words_question()
-    global selected_column, text_data
+    global selected_column, text_data, load_mapper
     # Array per salvare le frasi dalla colonna "sentence"
     caratteri_non_presenti = []
     # Apre il file CSV in modalità lettura
@@ -230,6 +241,10 @@ def loadCSV(csv_path):
     print("Caratteri strani trovati nel CSV: " + str(len(caratteri_non_presenti)))
     if not len(caratteri_non_presenti):
         messagebox.showinfo("Bene!", "la colonna del file csv risulta pulita, nessuna elaborazione richiesta")
+    if len(caratteri_non_presenti)>mapper_max_number:
+        load_mapper = False
+        messagebox.showwarning(title="too much symbols", message="Please choose a map file to clean common symbols, others will be deleted.")
+
     return simboli_da_mappare
 
 def final_clean(str):
@@ -245,6 +260,11 @@ def sostituisci_simboli(mappa_caratteri):
     try:
         for i, riga in text_data.items():
             testo = riga
+            testo = testo.strip()
+
+            if len(testo)<1 or len(testo.split(" ")) < min_words:
+                continue #skip this line 
+
             for symbol, valore in mappa_caratteri.items():
                 #fix sui simboli speciali
                 if symbol == "[TAB]":
@@ -252,20 +272,21 @@ def sostituisci_simboli(mappa_caratteri):
                 if symbol == "[SPAZIO]":
                     symbol = " "
 
-                if symbol in riga:
+                if symbol in testo:
                     if valore == '<VUOTO>':
                         testo = testo.replace(symbol, '')
                     elif valore == '<SPAZIO>':
                         testo = testo.replace(symbol, ' ')
                     elif valore == '<ELIMINA RIGA>':
                         testo = ""
+                        break
                     elif valore == '<PERMETTI>':
                         valore = symbol
                     else:
                         testo = testo.replace(symbol, valore)
             #se è rimasto qualcosa al testo pulito rimettilo nel text_data
             testo_pulito = final_clean(testo)
-            if len(testo_pulito) and len(testo_pulito.split(' ')) >= min_words:
+            if len(testo_pulito) and len(testo_pulito.split(" ")) >= min_words:
                 new_text_data[i] = testo_pulito
     except Exception as e:
         print(f"Errore durante la lettura e sostituzione del file: {e}")
@@ -276,7 +297,7 @@ def sostituisci_simboli(mappa_caratteri):
     return text_data
 
 def carica_mappa():
-    global simboli_da_mappare
+    global mappatura
     
     # Finestra di dialogo per scegliere il file di mapping
     file_path = filedialog.askopenfilename(filetypes=[("File MAP", "*.MAP *.txt"),
@@ -300,7 +321,7 @@ def carica_mappa():
                         mapping[simbolo] = valore
                 except ValueError as e:
                     print(f"Errore valore dropdown: {e}")
-
+            mappatura = mapping
             dropdowns_seeder(mapping)
 
 
@@ -447,12 +468,25 @@ def new_map(simbolo):
 def genera():
     global file_input_path
     global simboli_da_mappare
+    global load_mapper
+    global mappatura
 
-    # Funzione chiamata quando si preme il pulsante "Genera"
-    valori_selezionati = [dropdown.get() for dropdown in dropdowns]
+    azioni_su_simboli = []
+    if load_mapper:
+        # Funzione chiamata quando si preme il pulsante "Genera"
+        valori_selezionati = [dropdown.get() for dropdown in dropdowns]
+        azioni_su_simboli = valori_selezionati
+    else:
+        #mappa con i valori del file map
+        for simbolo in simboli_da_mappare:
+            #remap space and tabs
+            simbolo = simbolo.replace('\r', '').replace('\n', '').replace(' ','[SPAZIO]').replace('\t','[TAB]')
+            
+            valore_mappa = mappatura.get(simbolo, "<ELIMINA RIGA>")#se non trovato: elimina riga
+            azioni_su_simboli.append(valore_mappa)
 
     # Creazione di un dizionario utilizzando zip
-    mappa_caratteri = dict(zip(simboli_da_mappare, valori_selezionati))
+    mappa_caratteri = dict(zip(simboli_da_mappare, azioni_su_simboli))
 
     if file_input_path:
         # Salva il file con una finestra di dialogo
