@@ -193,24 +193,26 @@ def loadColumns(reader):
     selectcolumngGUI.mainloop()
     
 def loadCSV(csv_path):
-    num2words_enabled = ask_num2words_question()
     global selected_column, text_data, load_mapper
     # Array per salvare le frasi dalla colonna "sentence"
     caratteri_non_presenti = []
     # Apre il file CSV in modalità lettura
     with open(csv_path, 'r', encoding='utf-8') as csvfile:
         # Utilizza il modulo csv per leggere il contenuto
+    
+        known_delimiters = ["\t", ",", ";"]
+        #trova la delimitazione corretta
+        for picked_delimiter in known_delimiters:
+            reader = csv.DictReader(csvfile, delimiter=picked_delimiter, lineterminator="\r\n")
+            if len(reader.fieldnames)>1:
+                break
+            else:
+                csvfile.seek(0)
         
-        reader = csv.DictReader(csvfile, delimiter="\t")
-        #Open a Tkinker gui with two combobox to select a value in reader.fieldnames array
-        #and un set button to close this gui and pick the values selected
-
-        if len(reader.fieldnames)<2:
-            #retry with , separator
-            reader = csv.DictReader(csvfile, delimiter=",")
-            
         loadColumns(reader) # now we should have a "selected_column"
-        
+
+        num2words_enabled = ask_num2words_question()
+
         for i, riga in enumerate(reader):
             valore_text = riga[selected_column].lower() #automatically to lowercase here avoids more mapping #TODO must be option
             

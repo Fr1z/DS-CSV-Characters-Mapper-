@@ -2,9 +2,7 @@ import sys
 from myFunction import *
 #TODO 
 # fix import custom value su dropbox da mappatura
-# Fix salvataggio (sono in txt) che perde tutta la text_data nella riga sotto dopo averla appena ottenuta
-# TODO se trova più di N caratteri da mappare chiedere solo se si ha una mappatura da applicare sul resto applicare un elimina riga
-# Inizializza un array vuoto per salvare i caratteri
+# Use     with io.TextIOWrapper(io.BufferedWriter(gzip.open(data_lower, "w+")), encoding="utf-8") as file_out and progressbar
 
 
 # Verifica che sia fornito un argomento da riga di comando
