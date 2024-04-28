@@ -128,15 +128,18 @@ def loadTXT(txt_path):
         for i, riga in enumerate(reader):
             #Se abilitato converte i digits in words
             if num2words_enabled:
-                # Convert the digits to words
-                words = [num2words(int(word), lang="it") if word.isdigit() else word for word in riga.split(' ')]
-                # Join the words into a single string
-                riga = ' '.join(words)
+                try:
+                    # Convert the digits to words
+                    words = [num2words(int(word), lang="it") if word.isdigit() else word for word in riga.split(' ')]
+                    # Join the words into a single string
+                    riga = ' '.join(words)
+                except Exception as e:
+                    print(f"Error converting to string an unusual number: {e} \nSKIPPED")
 
-            riga = riga.lower()
+            riga = riga.lower().strip()
             text_data[i] = riga
             for carat in riga:
-                carat = carat.replace('\t', '[TAB]')
+                carat = carat.replace('\t', '[TAB]').replace(' ','[SPAZIO]')
                 if carat not in caratteri_da_mappare and carat not in caratteri_non_presenti: #and not in symboli da mapapre (global) cancellare tutti 
                     last=True
                     symbol += carat
@@ -202,6 +205,10 @@ def loadCSV(csv_path):
         #Open a Tkinker gui with two combobox to select a value in reader.fieldnames array
         #and un set button to close this gui and pick the values selected
 
+        if len(reader.fieldnames)<2:
+            #retry with , separator
+            reader = csv.DictReader(csvfile, delimiter=",")
+            
         loadColumns(reader) # now we should have a "selected_column"
         
         for i, riga in enumerate(reader):
